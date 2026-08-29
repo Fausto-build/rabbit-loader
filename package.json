@@ -1,0 +1,17 @@
+{
+  "name": "rabbit-loader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An animated React loading state that traces the Rabbit silhouette.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
