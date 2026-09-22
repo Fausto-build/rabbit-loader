@@ -3,6 +3,10 @@ import { useId, type CSSProperties } from "react";
 const RABBIT_CONTOUR_POINTS =
   "M 641 49 L 663 52 L 677 68 L 682 92 L 679 129 L 670 163 L 653 200 L 632 231 L 596 269 L 623 302 L 640 343 L 645 372 L 655 376 L 666 386 L 668 393 L 661 394 L 670 407 L 670 419 L 664 417 L 663 430 L 656 444 L 640 461 L 626 470 L 634 482 L 629 497 L 637 506 L 637 517 L 631 527 L 648 542 L 657 555 L 665 582 L 657 604 L 643 617 L 647 626 L 644 643 L 628 653 L 627 716 L 621 744 L 610 765 L 614 770 L 641 778 L 650 786 L 655 797 L 654 812 L 644 821 L 618 825 L 557 825 L 504 818 L 449 825 L 388 824 L 368 820 L 360 815 L 360 808 L 377 805 L 379 808 L 381 792 L 390 780 L 400 774 L 425 767 L 416 749 L 411 725 L 399 712 L 395 699 L 398 678 L 409 667 L 412 658 L 400 657 L 391 650 L 388 635 L 393 620 L 387 617 L 378 605 L 372 586 L 374 568 L 380 556 L 389 544 L 411 525 L 406 511 L 412 502 L 406 494 L 408 482 L 392 474 L 383 465 L 379 451 L 372 455 L 369 446 L 372 430 L 365 430 L 367 417 L 381 405 L 380 363 L 386 332 L 394 312 L 408 291 L 370 248 L 342 193 L 330 137 L 330 107 L 335 82 L 350 61 L 362 56 L 375 56 L 397 66 L 421 90 L 442 125 L 456 163 L 463 209 L 464 248 L 467 248 L 487 231 L 493 221 L 497 224 L 496 233 L 515 227 L 507 236 L 508 239 L 530 240 L 531 195 L 536 165 L 556 118 L 571 97 L 595 73 L 615 59 L 641 49 Z";
 
+// The transparent opening between the feet is a separate contour in the source PNG.
+const RABBIT_LEG_GAP_POINTS =
+  "M 509 738 L 497 770 L 499 805 L 532 804 L 535 770 L 525 739 L 509 738 Z";
+
 /** Round tiny polygon corners without changing the rabbit's recognizable outline. */
 function smoothClosedContour(polyline: string): string {
   const numbers = [...polyline.matchAll(/-?\d+(?:\.\d+)?/g)].map(([value]) => Number(value));
@@ -49,6 +53,7 @@ function smoothClosedContour(polyline: string): string {
 }
 
 const RABBIT_CONTOUR = smoothClosedContour(RABBIT_CONTOUR_POINTS);
+const RABBIT_LEG_GAP = smoothClosedContour(RABBIT_LEG_GAP_POINTS);
 
 const RABBIT_CRAFT_LOADER_STYLES = `
 .rabbitCraftLoader {
@@ -103,6 +108,9 @@ const RABBIT_CRAFT_LOADER_STYLES = `
   stroke-dashoffset: 1;
   animation: rabbit-draw var(--rabbit-loader-duration) linear infinite;
 }
+.rabbitCraftLoader__trace--legGap {
+  animation-name: rabbit-leg-gap-draw;
+}
 .rabbitCraftLoader__trace--glow {
   --rabbit-trace-opacity: 0.42;
   stroke: var(--rabbit-ember);
@@ -140,6 +148,13 @@ const RABBIT_CRAFT_LOADER_STYLES = `
   10% { stroke-dashoffset: 0.96; animation-timing-function: linear; }
   72% { stroke-dashoffset: 0.17; animation-timing-function: cubic-bezier(0.32, 0, 0.78, 1); }
   87% { stroke-dashoffset: 0; }
+  90% { opacity: var(--rabbit-trace-opacity); }
+  96%, 100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes rabbit-leg-gap-draw {
+  0%, 38% { stroke-dashoffset: 1; opacity: 0; }
+  40% { opacity: var(--rabbit-trace-opacity); }
+  54% { stroke-dashoffset: 0; }
   90% { opacity: var(--rabbit-trace-opacity); }
   96%, 100% { stroke-dashoffset: 0; opacity: 0; }
 }
@@ -251,6 +266,7 @@ export function RabbitCraftLoader({
         />
 
         <path className="rabbitCraftLoader__guide" d={RABBIT_CONTOUR} pathLength="1" />
+        <path className="rabbitCraftLoader__guide" d={RABBIT_LEG_GAP} pathLength="1" />
         <path
           className="rabbitCraftLoader__trace rabbitCraftLoader__trace--glow"
           d={RABBIT_CONTOUR}
@@ -260,6 +276,17 @@ export function RabbitCraftLoader({
         <path
           className="rabbitCraftLoader__trace rabbitCraftLoader__trace--core"
           d={RABBIT_CONTOUR}
+          pathLength="1"
+        />
+        <path
+          className="rabbitCraftLoader__trace rabbitCraftLoader__trace--glow rabbitCraftLoader__trace--legGap"
+          d={RABBIT_LEG_GAP}
+          pathLength="1"
+          filter={`url(#${glowId})`}
+        />
+        <path
+          className="rabbitCraftLoader__trace rabbitCraftLoader__trace--core rabbitCraftLoader__trace--legGap"
+          d={RABBIT_LEG_GAP}
           pathLength="1"
         />
 
