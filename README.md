@@ -1,22 +1,22 @@
 # Rabbit Loader
 
-A plug-and-play React loading component that draws the Rabbit silhouette with a glowing contour. The default animation cycle is six seconds, remains a silhouette throughout, and respects reduced-motion preferences.
+A single React loading component that traces the Rabbit silhouette in one continuous line. The cycle takes six seconds, never reveals the original image, and respects reduced-motion preferences.
 
-## Add it to an app
+## Use it
 
-1. Copy `src/RabbitCraftLoader.tsx` into your React project.
-2. Copy `src/rabbit-idle.png` into the app's public directory.
-3. Render the component:
+1. Copy [RabbitCraftLoader.tsx](RabbitCraftLoader.tsx) into your React app (for example, `components/RabbitCraftLoader.tsx`).
+2. Copy [rabbit-idle.png](rabbit-idle.png) into your app's `public` directory.
+3. Render it wherever you need a loading state:
 
 ```tsx
 import RabbitCraftLoader from "./RabbitCraftLoader";
 
 export function LoadingState() {
-  return <RabbitCraftLoader src="/rabbit-idle.png" />;
+  return <RabbitCraftLoader />;
 }
 ```
 
-The styling is embedded in the component, so no separate CSS import is required.
+The component defaults to `src="/rabbit-idle.png"`. Its styles are embedded, so no CSS file or extra animation library is needed. You can override `src` if you store the PNG at another URL.
 
 ## Props
 
