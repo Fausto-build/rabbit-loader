@@ -1,7 +1,54 @@
 import { useId, type CSSProperties } from "react";
 
-const RABBIT_CONTOUR =
+const RABBIT_CONTOUR_POINTS =
   "M 641 49 L 663 52 L 677 68 L 682 92 L 679 129 L 670 163 L 653 200 L 632 231 L 596 269 L 623 302 L 640 343 L 645 372 L 655 376 L 666 386 L 668 393 L 661 394 L 670 407 L 670 419 L 664 417 L 663 430 L 656 444 L 640 461 L 626 470 L 634 482 L 629 497 L 637 506 L 637 517 L 631 527 L 648 542 L 657 555 L 665 582 L 657 604 L 643 617 L 647 626 L 644 643 L 628 653 L 627 716 L 621 744 L 610 765 L 614 770 L 641 778 L 650 786 L 655 797 L 654 812 L 644 821 L 618 825 L 557 825 L 504 818 L 449 825 L 388 824 L 368 820 L 360 815 L 360 808 L 377 805 L 379 808 L 381 792 L 390 780 L 400 774 L 425 767 L 416 749 L 411 725 L 399 712 L 395 699 L 398 678 L 409 667 L 412 658 L 400 657 L 391 650 L 388 635 L 393 620 L 387 617 L 378 605 L 372 586 L 374 568 L 380 556 L 389 544 L 411 525 L 406 511 L 412 502 L 406 494 L 408 482 L 392 474 L 383 465 L 379 451 L 372 455 L 369 446 L 372 430 L 365 430 L 367 417 L 381 405 L 380 363 L 386 332 L 394 312 L 408 291 L 370 248 L 342 193 L 330 137 L 330 107 L 335 82 L 350 61 L 362 56 L 375 56 L 397 66 L 421 90 L 442 125 L 456 163 L 463 209 L 464 248 L 467 248 L 487 231 L 493 221 L 497 224 L 496 233 L 515 227 L 507 236 L 508 239 L 530 240 L 531 195 L 536 165 L 556 118 L 571 97 L 595 73 L 615 59 L 641 49 Z";
+
+/** Round tiny polygon corners without changing the rabbit's recognizable outline. */
+function smoothClosedContour(polyline: string): string {
+  const numbers = [...polyline.matchAll(/-?\d+(?:\.\d+)?/g)].map(([value]) => Number(value));
+  const points: Array<{ x: number; y: number }> = [];
+  for (let index = 0; index < numbers.length; index += 2) {
+    points.push({ x: numbers[index], y: numbers[index + 1] });
+  }
+  points.pop(); // The last point repeats the first one.
+
+  const format = (value: number) => Number(value.toFixed(1));
+  const corner = (index: number) => {
+    const point = points[index];
+    const previous = points[(index - 1 + points.length) % points.length];
+    const next = points[(index + 1) % points.length];
+    const incoming = Math.hypot(previous.x - point.x, previous.y - point.y);
+    const outgoing = Math.hypot(next.x - point.x, next.y - point.y);
+    const cosine =
+      ((previous.x - point.x) * (next.x - point.x) +
+        (previous.y - point.y) * (next.y - point.y)) /
+      (incoming * outgoing);
+    // Keep sharp features—such as the ear notch and cheek tufts—nearly intact.
+    const radius = Math.min(6, incoming * 0.26, outgoing * 0.26) * (cosine > 0.2 ? 0.55 : 1);
+    return {
+      point,
+      before: {
+        x: format(point.x + ((previous.x - point.x) / incoming) * radius),
+        y: format(point.y + ((previous.y - point.y) / incoming) * radius),
+      },
+      after: {
+        x: format(point.x + ((next.x - point.x) / outgoing) * radius),
+        y: format(point.y + ((next.y - point.y) / outgoing) * radius),
+      },
+    };
+  };
+
+  const start = corner(0).after;
+  const commands = [`M ${start.x} ${start.y}`];
+  for (let index = 1; index <= points.length; index += 1) {
+    const { point, before, after } = corner(index % points.length);
+    commands.push(`L ${before.x} ${before.y} Q ${point.x} ${point.y} ${after.x} ${after.y}`);
+  }
+  commands.push("Z");
+  return commands.join(" ");
+}
+
+const RABBIT_CONTOUR = smoothClosedContour(RABBIT_CONTOUR_POINTS);
 
 const RABBIT_CRAFT_LOADER_STYLES = `
 .rabbitCraftLoader {
@@ -22,24 +69,21 @@ const RABBIT_CRAFT_LOADER_STYLES = `
   width: 100%;
   aspect-ratio: 1;
   overflow: visible;
-  filter: drop-shadow(0 26px 28px rgb(8 4 3 / 0.32));
+  filter: drop-shadow(0 20px 24px rgb(8 4 3 / 0.24));
 }
 .rabbitCraftLoader__shadow {
   fill: #080505;
-  opacity: 0.4;
+  opacity: 0.34;
   filter: blur(16px);
-  transform-origin: 511px 839px;
-  animation: rabbit-shadow var(--rabbit-loader-duration) ease-in-out infinite;
 }
 .rabbitCraftLoader__silhouette {
-  opacity: 0.93;
-  animation: rabbit-breathe var(--rabbit-loader-duration) ease-in-out infinite;
+  opacity: 0.92;
 }
 .rabbitCraftLoader__innerGlow {
   fill: var(--rabbit-ember);
   opacity: 0;
-  filter: blur(26px);
-  animation: rabbit-inner-glow var(--rabbit-loader-duration) ease-out infinite;
+  filter: blur(22px);
+  animation: rabbit-inner-glow var(--rabbit-loader-duration) linear infinite;
 }
 .rabbitCraftLoader__guide,
 .rabbitCraftLoader__trace {
@@ -50,24 +94,23 @@ const RABBIT_CRAFT_LOADER_STYLES = `
 }
 .rabbitCraftLoader__guide {
   stroke: #f9a75e;
-  stroke-width: 1.6;
-  opacity: 0.17;
-  stroke-dasharray: 0.008 0.016;
-  animation: rabbit-guide-pulse var(--rabbit-loader-duration) ease-in-out infinite;
+  stroke-width: 1;
+  opacity: 0.07;
 }
 .rabbitCraftLoader__trace {
+  --rabbit-trace-opacity: 1;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   animation: rabbit-draw var(--rabbit-loader-duration) linear infinite;
 }
 .rabbitCraftLoader__trace--glow {
+  --rabbit-trace-opacity: 0.42;
   stroke: var(--rabbit-ember);
-  stroke-width: 8;
-  opacity: 0.58;
+  stroke-width: 4.5;
 }
 .rabbitCraftLoader__trace--core {
   stroke: var(--rabbit-cream);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
 }
 .rabbitCraftLoader__caption {
   display: inline-flex;
@@ -92,37 +135,25 @@ const RABBIT_CRAFT_LOADER_STYLES = `
   animation: rabbit-status-pulse 1.2s ease-in-out infinite;
 }
 @keyframes rabbit-draw {
-  0%, 5% { stroke-dashoffset: 1; opacity: 0; }
-  8% { opacity: 1; }
-  82% { stroke-dashoffset: 0; opacity: 1; }
-  92%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  0%, 3% { stroke-dashoffset: 1; opacity: 0; animation-timing-function: ease-in; }
+  5% { opacity: var(--rabbit-trace-opacity); }
+  10% { stroke-dashoffset: 0.96; animation-timing-function: linear; }
+  72% { stroke-dashoffset: 0.17; animation-timing-function: cubic-bezier(0.32, 0, 0.78, 1); }
+  87% { stroke-dashoffset: 0; }
+  90% { opacity: var(--rabbit-trace-opacity); }
+  96%, 100% { stroke-dashoffset: 0; opacity: 0; }
 }
 @keyframes rabbit-inner-glow {
-  0%, 72% { opacity: 0; }
-  84% { opacity: 0.26; }
+  0%, 82% { opacity: 0; }
+  88% { opacity: 0.08; }
   96%, 100% { opacity: 0; }
-}
-@keyframes rabbit-breathe {
-  0%, 100% { opacity: 0.82; }
-  50% { opacity: 0.98; }
-}
-@keyframes rabbit-guide-pulse {
-  0%, 100% { opacity: 0.09; }
-  50% { opacity: 0.23; }
-}
-@keyframes rabbit-shadow {
-  0%, 100% { opacity: 0.3; transform: scaleX(0.92); }
-  50% { opacity: 0.5; transform: scaleX(1.04); }
 }
 @keyframes rabbit-status-pulse {
   0%, 100% { opacity: 0.48; transform: scale(0.82); }
   50% { opacity: 1; transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rabbitCraftLoader__shadow,
-  .rabbitCraftLoader__silhouette,
   .rabbitCraftLoader__innerGlow,
-  .rabbitCraftLoader__guide,
   .rabbitCraftLoader__trace,
   .rabbitCraftLoader__statusDot { animation: none; }
   .rabbitCraftLoader__trace { stroke-dashoffset: 0; opacity: 1; }
@@ -192,7 +223,7 @@ export function RabbitCraftLoader({
           </linearGradient>
 
           <filter id={glowId} x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="12" result="blur" />
+            <feGaussianBlur stdDeviation="7" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
